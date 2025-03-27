@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <title>Journal Entry Statistics</title> 
+   
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> 
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+            text-align: center;
+        }
+        .container-wrapper {
+            border: 2px solid #ccc;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 30px auto;
+            width: 90%;
+            max-width: 1200px;
+            background: #fff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px; 
+            font-size: 20px;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+        .header a {
+            text-decoration: none;
+            color: black;
+        }
+        .header a:hover {
+            text-decoration: underline;
+        }
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            margin-top: 30px;
+        }
+        .chart-container {
+            width: 45%;
+            height: auto;
+        }
+        canvas {
+            width: 100% !important;
+            height: auto !important;
+        }
+        #categoryChart {
+            max-width: 80% !important; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container-wrapper">
+        <div class="header">
+            <a href="index.html">Home</a> |
+            <span>Journal Entries Statistics</span> |
+            <a href="login.html" onclick="logout()">Logout</a>
+        </div>
+    
+    <div class="container">
+        <!-- Bar Chart: Entries per Day -->
+        <div class="chart-container">
+            <h3>Entries per Day</h3>
+            <canvas id="entriesChart"></canvas>
+        </div>
+
+        <!-- Pie Chart: Category Distribution -->
+        <div class="chart-container">
+            <h3>Category Distribution</h3>
+            <canvas id="categoryChart"></canvas>
+        </div>
+    </div>
+    </div>
+
+    <script>
+        // Fetch journal entry statistics and render charts
+        fetch('http://localhost:5000/entries/stats', {
+            headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }
+        })
+        .then(res => res.json())
+        .then(data => {
+            // Entries per day (Bar chart)
+            const formattedDates = data.dates.map(date => new Date(date).toISOString().split('T')[0]);
+            const ctx1 = document.getElementById('entriesChart').getContext('2d');
+            new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: formattedDates, // X-axis labels (dates)
+                    datasets: [
+                {
+                    label: 'Entries per Day',
+                    data: data.counts, // Daily entry counts
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)', // Blue for daily
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Entries per Year',
+                    data: data.yearCounts, // Yearly entry counts
+                    backgroundColor: 'rgba(255, 99, 132, 0.6)', // Red for yearly
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 1
+                }
+            ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+
+            // Category distribution (Pie chart)
+            const ctx2 = document.getElementById('categoryChart').getContext('2d');
+            new Chart(ctx2, {
+                type: 'pie',
+                data: {
+                    labels: data.categories, // Category labels
+                    datasets: [{
+                        data: data.categoryCounts, // Category counts
+                        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'],
+                        hoverBackgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF']
+                    }]
+                }
+            });
+        })
+        .catch(err => console.error("Error loading chart data:", err));
+    </script>
+
+</body>
+</html>

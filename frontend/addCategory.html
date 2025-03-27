@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create New Category</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Create New Category</h1>
+            <nav>
+                <a href="index.html">Home</a> |
+                <a href="addJournalEntry.html">New Entry</a> |
+                <a href="login.html" onclick="logout()">Logout</a>
+            </nav>
+        </header>
+        
+        <main>
+            <section id="create-category">
+                <form id="category-form">
+                    <label for="category-name">Category Name</label>
+                    <input type="text" id="category-name" name="category_name" placeholder="Enter category name" required>
+
+                    <label for="category-description">Category Description</label>
+                    <textarea id="category-description" name="category_description" placeholder="Describe the category..." required></textarea>
+
+                    <button type="submit">Add Category</button>
+                </form>
+            </section>
+        </main>
+    </div>
+
+    <script src="js/addCategory.js"></script>
+</body>
+</html>

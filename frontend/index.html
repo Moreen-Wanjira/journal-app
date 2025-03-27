@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Journal</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f4f4f4;
+        }
+        .container {
+            width: 80%;
+            max-width: 900px;
+        }
+        .entries-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .entry-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            width: 400px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+        }
+        .entry-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .title {
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .category {
+            font-weight: bold;
+            color: #555;
+        }
+        .date {
+            color: gray;
+            font-size: 14px;
+        }
+        .buttons {
+            margin-top: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .edit-button, .delete-button {
+            background: #007BFF;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .edit-button:hover {
+            background: #0056b3;
+        }
+        .delete-button {
+            background: #DC3545;
+        }
+        .delete-button:hover {
+            background: #a71d2a;
+        }
+        #pagination {
+            margin-top: 20px;
+            text-align: center;
+        }
+        #pagination button {
+            padding: 8px 16px;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 0 5px;
+        }
+        #pagination button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Personal Journal</h1>
+            <nav>
+                <a href="index.html">Home</a> |
+                <a href="addJournalEntry.html">New Entry</a> |
+                <a href="addCategory.html">Add Category</a>  |
+                <a href="chart.html">Get Statistics</a>  |
+                <a href="login.html" onclick="logout()">Logout</a>
+            </nav>
+        </header>
+        
+        <main>
+            <section id="view-entries">
+                <div id="entries-list" class="entries-grid"></div>
+                <div id="pagination"></div>
+            </section>
+        </main>
+    </div>
+
+    <footer>
+        <p>&copy; 2025 Personal Journal. All rights reserved.</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            fetchEntries(1); // Fetch entries for the first page when the page loads
+        });
+    
+        function logout() {
+            localStorage.removeItem('authToken');
+            window.location.href = 'login.html';
+        }
+    
+        function fetchEntries(page = 1) {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                alert('Please log in');
+                window.location.href = 'login.html';
+                return;
+            }
+    
+            fetch(`http://localhost:5000/entries?page=${page}&limit=4`, {
+                headers: { 'Authorization': `Bearer ${token}` },
+            })
+            .then(response => response.json())
+            .then(data => {
+                const entriesList = document.getElementById('entries-list');
+                entriesList.innerHTML = ''; // Clear the previous entries
+    
+                // Loop through entries and display them
+                data.entries.forEach(entry => {
+                    const entryDiv = document.createElement('div');
+                    entryDiv.classList.add('entry-card');
+    
+                    // Truncate long content
+                    const maxLength = 100;
+                    const shortContent = entry.content.length > maxLength ? entry.content.substring(0, maxLength) + "..." : entry.content;
+                    const isTruncated = entry.content.length > maxLength;
+    
+                    entryDiv.innerHTML = `
+                        <p class="entry-content">${shortContent}</p>
+                        ${isTruncated ? `<button class="read-more" data-full="${entry.content}">Read More</button>` : ''}
+                        <p class="title">&#9998; ${entry.title}</p>
+                        <p class="category">&#128193; ${entry.Category}</p>
+                        <p class="date">${new Date(entry.created_at).toLocaleDateString()}</p>
+                        <div class="buttons">
+                            <button class="edit-button" data-id="${entry.id}">Edit</button>
+                            <button class="delete-button" data-id="${entry.id}">Delete</button>
+                        </div>
+                    `;
+                    entriesList.appendChild(entryDiv);
+                });
+    
+                renderPagination(data.pagination); // Render pagination controls
+    
+                // Attach event listeners
+                attachEventListeners();
+            })
+            .catch(error => console.error('Error fetching entries:', error));
+        }
+    
+        function attachEventListeners() {
+            // "Read More" Functionality
+            document.querySelectorAll('.read-more').forEach(button => {
+                button.addEventListener('click', function() {
+                    const contentElement = this.previousElementSibling;
+                    if (this.textContent === 'Read More') {
+                        contentElement.textContent = this.getAttribute('data-full'); // Expand full text
+                        this.textContent = 'Read Less';
+                    } else {
+                        contentElement.textContent = this.getAttribute('data-full').substring(0, 100) + '...'; // Collapse back
+                        this.textContent = 'Read More';
+                    }
+                });
+            });
+    
+            // Edit Button
+            document.querySelectorAll('.edit-button').forEach(button => {
+                button.addEventListener('click', function() {
+                    const entryId = this.dataset.id;
+                    window.location.href = `editEntry.html?id=${entryId}`;
+                });
+            });
+    
+            // Delete Button
+            document.querySelectorAll('.delete-button').forEach(button => {
+                button.addEventListener('click', function() {
+                    const entryId = this.dataset.id;
+                    deleteEntry(entryId);
+                });
+            });
+        }
+    
+        function deleteEntry(entryId) {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                alert('Please log in');
+                window.location.href = 'login.html';
+                return;
+            }
+            if (confirm('Are you sure you want to delete this entry?')) {
+                fetch(`http://localhost:5000/entries/${entryId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        alert('Entry deleted successfully');
+                        fetchEntries(); // Refresh the entries after deletion
+                    } else {
+                        alert('Error deleting entry');
+                    }
+                })
+                .catch(error => console.error('Error deleting entry:', error));
+            }
+        }
+    
+        function renderPagination(pagination) {
+            const paginationContainer = document.getElementById('pagination');
+            paginationContainer.innerHTML = ''; // Clear existing pagination controls
+    
+            // Previous Page Button
+            if (pagination.currentPage > 1) {
+                const prevButton = document.createElement('button');
+                prevButton.textContent = 'Previous';
+                prevButton.onclick = () => loadPage(pagination.currentPage - 1);
+                paginationContainer.appendChild(prevButton);
+            }
+    
+            // Next Page Button
+            if (pagination.currentPage < pagination.totalPages) {
+                const nextButton = document.createElement('button');
+                nextButton.textContent = 'Next';
+                nextButton.onclick = () => loadPage(pagination.currentPage + 1);
+                paginationContainer.appendChild(nextButton);
+            }
+        }
+    
+        function loadPage(page) {
+            fetchEntries(page); // Fetch entries for the new page
+        }
+    </script>
+    
+</body>
+</html>
